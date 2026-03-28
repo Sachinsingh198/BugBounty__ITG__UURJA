@@ -66,7 +66,7 @@ app.put('/api/tasks/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const taskIndex = tasks.findIndex(t => t.id === id);
   
-  if (taskIndex === -1) {
+  if (!task) {
     return res.status(404).json({ error: 'Task not found' });
   }
   
