@@ -109,10 +109,10 @@ app.delete('/api/tasks/:id', (req, res) => {
   }
   
   // BUG: Doesn't actually remove the task from array
-  const deletedTask = tasks[taskIndex];
-  // tasks.splice(taskIndex, 1); // This line is commented out!
+  const deletedTask = tasks.splice(taskIndex, 1)[0];
+
   
-  res.json(deletedTask);
+  res.json({message : "Task Deleted", deletedTask});
 });
 
 // BUG 7: Search is case-sensitive and doesn't search description
