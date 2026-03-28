@@ -56,8 +56,11 @@ app.get('/api/tasks', (req, res) => {
 app.get('/api/tasks/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const task = tasks.find(t => t.id === id);
-  
+
   // BUG: No check if task is undefined
+  if(!task){
+    return res.status(404).json({ error: 'Task not found' });
+  }
   res.json(task);
 });
 
@@ -66,11 +69,16 @@ app.put('/api/tasks/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const taskIndex = tasks.findIndex(t => t.id === id);
   
-  if (!task) {
+  if (taskIndex == -1) {
     return res.status(404).json({ error: 'Task not found' });
   }
   
   // BUG: Only updates title, ignoring other fields
+  const {title, description, priority, completed} = req.body;
+  if(title!== undefined) task[taskIndex].title = title;
+  if(description!== undefined) task[taskIndex].description = description;
+  if(priority!== undefined) task[taskIndex].priority = priority;
+  if(completed!== undefined) task[taskIndex].completed = completed;
   tasks[taskIndex].title = req.body.title;
   
   res.json(tasks[taskIndex]);
