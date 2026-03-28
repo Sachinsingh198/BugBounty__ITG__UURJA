@@ -44,9 +44,9 @@ app.get('/api/tasks', (req, res) => {
   let filteredTasks = tasks;
   
   if (filter === 'completed') {
-    filteredTasks = tasks; // BUG: Not actually filtering
+    filteredTasks = tasks.filter(t => t.completed === true) // BUG: Not actually filtering
   } else if (filter === 'active') {
-    filteredTasks = tasks; // BUG: Not actually filtering
+    filteredTasks = tasks.filter(t => t.completed === false); // BUG: Not actually filtering
   }
   
   res.json(filteredTasks);
