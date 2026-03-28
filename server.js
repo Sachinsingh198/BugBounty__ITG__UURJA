@@ -22,16 +22,16 @@ let nextId = 3;
 // BUG 1: No input validation - allows empty tasks
 app.post('/api/tasks', (req, res) => {
   const { title, description, priority } = req.body;
-  
+
   const newTask = {
     id: nextId++,
-    title: title,
-    description: description,
+    title: title.trim(),
+    description: description.trim(),
     completed: false,
-    priority: priority,
+    priority: priority || 'medium',
     createdAt: new Date().toISOString()
   };
-  
+
   tasks.push(newTask);
   res.status(201).json(newTask);
 });

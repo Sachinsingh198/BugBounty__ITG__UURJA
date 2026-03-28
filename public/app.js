@@ -8,12 +8,31 @@ let tasks = [];
 document.addEventListener('DOMContentLoaded', () => {
     loadTasks();
     setupEventListeners();
+    createNotificationContainer();  // Fix 1
 });
+
+// Notification container
+function createNotificationContainer(){
+    if(!document.getElementById('notificationContainer')){
+        const container = document.createElement('div');
+        container.id = 'notificationContainer';
+        container.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+        `;
+        document.body.appendChild(container);
+    }
+}
 
 function setupEventListeners() {
     // Add task form
     document.getElementById('addTaskForm').addEventListener('submit', handleAddTask);
-    
+
     // Filter buttons
     document.querySelectorAll('.btn-filter').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -23,7 +42,7 @@ function setupEventListeners() {
             filterAndRenderTasks();
         });
     });
-    
+
     // Search
     document.getElementById('searchBtn').addEventListener('click', handleSearch);
     document.getElementById('searchInput').addEventListener('keyup', (e) => {
@@ -31,17 +50,17 @@ function setupEventListeners() {
             handleSearch();
         }
     });
-    
+
     // Sort
     document.getElementById('sortSelect').addEventListener('change', (e) => {
         currentSort = e.target.value;
         filterAndRenderTasks();
     });
-    
+
     // Modal
     document.querySelector('.close').addEventListener('click', closeEditModal);
     document.getElementById('editTaskForm').addEventListener('submit', handleEditTask);
-    
+
     // BUG: Event listener on wrong element
     window.addEventListener('click', (e) => {
         if (e.target.id === 'editModal') {
@@ -56,7 +75,7 @@ async function loadTasks() {
         const response = await fetch(`${API_URL}/tasks`);
         tasks = await response.json();
         filterAndRenderTasks();
-        updateStats();
+        await updateStats();
     } catch (error) {
         // BUG: Poor error handling - just logs, doesn't inform user
         console.error('Error loading tasks:', error);
@@ -66,11 +85,11 @@ async function loadTasks() {
 // Add new task
 async function handleAddTask(e) {
     e.preventDefault();
-    
+
     const title = document.getElementById('taskTitle').value;
     const description = document.getElementById('taskDescription').value;
     const priority = document.getElementById('taskPriority').value;
-    
+
     // BUG: No client-side validation before sending to server
     try {
         const response = await fetch(`${API_URL}/tasks`, {
@@ -80,16 +99,16 @@ async function handleAddTask(e) {
             },
             body: JSON.stringify({ title, description, priority })
         });
-        
+
         const newTask = await response.json();
         tasks.push(newTask);
-        
+
         // BUG: Form reset is missing
         // document.getElementById('addTaskForm').reset();
-        
+
         filterAndRenderTasks();
-        updateStats();
-        
+        await updateStats();
+
         // BUG: Success message is misspelled
         showNotificaton('Task added successfully!', 'success');
     } catch (error) {
@@ -100,12 +119,12 @@ async function handleAddTask(e) {
 // Handle search
 async function handleSearch() {
     const query = document.getElementById('searchInput').value.trim();
-    
+
     if (!query) {
-        loadTasks();
+        await loadTasks();
         return;
     }
-    
+
     try {
         // BUG: Wrong API endpoint - should be /api/search?q= not /api/tasks/search/
         const response = await fetch(`${API_URL}/tasks/search/${query}`);
@@ -119,14 +138,14 @@ async function handleSearch() {
 // Filter and render tasks
 function filterAndRenderTasks() {
     let filtered = [...tasks];
-    
+
     // Apply filter
     if (currentFilter === 'completed') {
         filtered = filtered.filter(task => task.completed);
     } else if (currentFilter === 'active') {
         filtered = filtered.filter(task => !task.completed);
     }
-    
+
     // Apply sort
     // BUG: Sort logic is inverted for date
     if (currentSort === 'date') {
@@ -138,19 +157,19 @@ function filterAndRenderTasks() {
         // BUG: Case-sensitive sort
         filtered.sort((a, b) => a.title > b.title ? 1 : -1);
     }
-    
+
     renderTasks(filtered);
 }
 
 // Render tasks to DOM
 function renderTasks(tasksToRender) {
     const taskList = document.getElementById('taskList');
-    
+
     if (tasksToRender.length === 0) {
         taskList.innerHTML = '<p class="loading">No tasks found</p>';
         return;
     }
-    
+
     taskList.innerHTML = tasksToRender.map(task => `
         <div class="task-item ${task.completed ? 'completed' : ''}" data-id="${task.id}">
             <div class="task-header">
@@ -178,17 +197,17 @@ async function toggleTask(id) {
         const response = await fetch(`${API_URL}/tasks/${id}/toggle`, {
             method: 'PATCH'
         });
-        
+
         const updatedTask = await response.json();
-        
+
         // BUG: Doesn't wait for response before updating UI
         const taskIndex = tasks.findIndex(t => t.id === id);
         if (taskIndex !== -1) {
             tasks[taskIndex] = updatedTask;
         }
-        
+
         filterAndRenderTasks();
-        updateStats();
+        await updateStats();
     } catch (error) {
         showNotification('Error updating task', 'error');
     }
@@ -197,26 +216,26 @@ async function toggleTask(id) {
 // Edit task
 function editTask(id) {
     const task = tasks.find(t => t.id === id);
-    
+
     if (!task) return;
-    
+
     document.getElementById('editTaskId').value = task.id;
     document.getElementById('editTaskTitle').value = task.title;
     document.getElementById('editTaskDescription').value = task.description;
     document.getElementById('editTaskPriority').value = task.priority;
-    
+
     document.getElementById('editModal').style.display = 'block';
 }
 
 // Handle edit task submit
 async function handleEditTask(e) {
     e.preventDefault();
-    
+
     const id = parseInt(document.getElementById('editTaskId').value);
     const title = document.getElementById('editTaskTitle').value;
     const description = document.getElementById('editTaskDescription').value;
     const priority = document.getElementById('editTaskPriority').value;
-    
+
     try {
         const response = await fetch(`${API_URL}/tasks/${id}`, {
             method: 'PUT',
@@ -225,14 +244,14 @@ async function handleEditTask(e) {
             },
             body: JSON.stringify({ title, description, priority })
         });
-        
+
         const updatedTask = await response.json();
-        
+
         const taskIndex = tasks.findIndex(t => t.id === id);
         if (taskIndex !== -1) {
             tasks[taskIndex] = updatedTask;
         }
-        
+
         closeEditModal();
         filterAndRenderTasks();
         showNotification('Task updated successfully!', 'success');
@@ -244,17 +263,17 @@ async function handleEditTask(e) {
 // Delete task
 async function deleteTask(id) {
     // BUG: No confirmation dialog
-    
+
     try {
         await fetch(`${API_URL}/tasks/${id}`, {
             method: 'DELETE'
         });
-        
+
         // BUG: Removes from local array even though server doesn't delete it
         tasks = tasks.filter(t => t.id !== id);
-        
+
         filterAndRenderTasks();
-        updateStats();
+        await updateStats();
         showNotification('Task deleted successfully!', 'success');
     } catch (error) {
         showNotification('Error deleting task', 'error');
@@ -266,7 +285,7 @@ async function updateStats() {
     try {
         const response = await fetch(`${API_URL}/stats`);
         const stats = await response.json();
-        
+
         document.getElementById('totalTasks').textContent = stats.total;
         document.getElementById('activeTasks').textContent = stats.active;
         document.getElementById('completedTasks').textContent = stats.completed;
