@@ -94,10 +94,9 @@ app.patch('/api/tasks/:id/toggle', (req, res) => {
   }
   
   // BUG: Simulating race condition - delayed response
-  setTimeout(() => {
-    task.completed = !task.completed;
-    res.json(task);
-  }, 100);
+  task.completed = !task.completed;
+
+  res.json(task);
 });
 
 // BUG 6: Doesn't actually delete the task
